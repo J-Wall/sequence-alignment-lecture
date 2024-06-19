@@ -117,7 +117,7 @@ Markdown(
 )
 ```
 
-## Works with arbirary sequences {.smaller}
+## Works with arbitrary sequences {.smaller}
 
 ```{python}
 from IPython.display import Markdown
