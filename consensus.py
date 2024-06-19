@@ -31,7 +31,9 @@ def main():
             counter[c] += 1
 
     consensus = "".join(counter.most_common(1)[0][0] for counter in counts_per_pos)
-    print(">consensus", consensus, ">without_gaps", consensus.replace("-", ""), sep="\n")
+    print(
+        ">consensus", consensus, ">without_gaps", consensus.replace("-", ""), sep="\n"
+    )
 
 
 if __name__ == "__main__":

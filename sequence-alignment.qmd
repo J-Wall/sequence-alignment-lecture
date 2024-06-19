@@ -1,0 +1,119 @@
+---
+title: "Introduction to Sequence Alignment"
+author: "Jesse RA Wallace"
+format: revealjs
+---
+
+## Lesson plan
+
+- Global pairwise alignment with the Needleman-Wunsch algorithm
+- Introduction to multiple sequence alignment
+- Activity: Consensus calling on "noisy" sequences
+
+## Global pairwise alignment {.smaller}
+
+```{python}
+from IPython.display import Markdown
+from nw import NeedlemanWunsch, Trace
+
+a = "ACT"
+b = "ACCT"
+
+needle = NeedlemanWunsch(a, b, gap_penalty=1)
+
+Markdown(
+    "Global alignment of two sequences\n\n"
+    f"$$\na = \\text{{{a}}}$$\n\n$$b = \\text{{{b}}}\n$$\n\n"
+    "with scoring scheme\n\n"
+    f"$$\nS_{{gap}} = {needle.gap_penalty}$$\n\n$$"
+    "S(a_i, b_j) = \\begin{cases}\n"
+    f"{needle.match} \; , & a_i = b_j \\\\\n"
+    f"{needle.mismatch} \; , & a_i \\ne b_j"
+    "\n\\end{cases}\n$$"
+)
+```
+
+Naive global search has time complexity
+$\quad O\left(3^{(n - 1)(m - 1)}\right)$
+
+## {.smaller}
+
+```{python}
+prefix = "::: {.fragment .fade-in-then-out}\n"
+affix = "\n:::"
+
+steps = [(
+    "- Prepend a gap to each sequence\n"
+    "- Initialise a matrix $M$ with the characers of the sequences as row and column labels.\n\n"
+    f"{needle}"
+)]
+needle.initialise_scores()
+steps.append(
+    "Initialise scores in first row and first column "
+    "with the sequences\n$$\n\\begin{align*}\nM_{0j} &= -S_\\text{gap} \\times j, \\\\\n"
+    "M_{i0} &= -S_\\text{gap} \\times i\n\\end{align*}\n$$\n\n"
+    f"{needle}"
+)
+for score in needle:
+    diag_score = needle.score(needle.i - 1, needle.j -1) + (needle.match if needle.a[needle.i] == needle.b[needle.j] else needle.mismatch)
+    steps.append(
+        "$$\n\\begin{alignat*}{4}\n"
+        "M_{i,j} &= \\max( & \\color{red}{M_{(i - 1),j}} - S_\\text{gap}, && \\quad \color{orange}{M_{i,(j - 1)}} - s_\\text{gap},"
+        " && \\quad \\color{blue}{M_{(i - 1),(j - 1)}} + S(a_i, b_j) && ) \\\\\n"
+        f"M_{{{needle.i},{needle.j}}} &= \\max(&"
+        f"(\\color{{red}}{{{needle.score(i = needle.i - 1)}}} - {needle.gap_penalty}), && \\quad "
+        f"(\\color{{orange}}{{{needle.score(j = needle.j - 1)}}} - {needle.gap_penalty}), && \\quad "
+        f'\\color{{blue}}{{{needle.score(needle.i - 1, needle.j - 1)}}} + S(``\\text{{{needle.a[needle.i]}"}}, ``\\text{{{needle.b[needle.j]}"}}) && )'
+        " \\\\\n&= \\max(&"
+        f"{r'\boxed{' if needle.trace() & Trace.UP else ''}"
+        f"{needle.score(i = needle.i - 1) - needle.gap_penalty} \\quad [\\uparrow]"
+        f"{r'}' if needle.trace() & Trace.UP else ''}"
+        ", && \\quad "
+        f"{r'\boxed{' if needle.trace() & Trace.LEFT else ''}"
+        f"{needle.score(j = needle.j - 1) - needle.gap_penalty} \\quad [\\leftarrow]"
+        f"{r'}' if needle.trace() & Trace.LEFT else ''}"
+        ", && \\quad "
+        f"{r'\boxed{' if needle.trace() & Trace.DIAG else ''}"
+        f"{diag_score} \\quad [\\nwarrow]"
+        f"{r'}' if needle.trace() & Trace.DIAG else ''}"
+        " && )\n"
+        "\\end{alignat*}\n$$\n\n"
+        f"{needle}"
+    )
+
+a_aln, b_aln = needle.traceback()
+steps.append("- Starting in bottom-right corner, traceback along arrows\n"
+f"- Insert gaps when there is a vertical or horizontal step.\n\n{needle}")
+steps.append(f"- `\n{a_aln}`\n- `{b_aln}`\n\n{needle}")
+
+Markdown(
+    ":::: {.r-stack}\n\n" + prefix + f"{affix}\n\n{prefix}".join(steps) + affix + "\n\n::::"
+)
+```
+
+## Works with arbirary sequences {.smaller}
+
+```{python}
+from IPython.display import Markdown
+from nw import NeedlemanWunsch, Trace
+
+a = "Jessie"
+b = "Jesse W"
+
+needle = NeedlemanWunsch(a, b, gap_penalty=1)
+
+needle.initialise_scores()
+for score in needle:
+    last_score = score
+
+a_aln, b_aln = needle.traceback()
+Markdown(f"{needle}")
+```
+
+## Resulting alignment
+
+```{python}
+Markdown(f"- `\n{a_aln}`\n- `{b_aln}`")
+```
+
+## Multiple sequence alignment
