@@ -4,18 +4,47 @@ author: "Jesse RA Wallace"
 format: revealjs
 ---
 
-## Lesson plan
+## Lesson plan {auto-animate=true}
 
-- Pairwise alignment with the Needleman-Wunsch algorithm
-- Introduction to multiple sequence alignment
-- Activity: Consensus calling on "noisy" sequences
+1. Global alignment with the Needleman-Wunsch algorithm
+2. Local alignment with the Smith-Waterman algorithm
+3. Introduction to multiple sequence alignment
+4. Activity
 
 ![Oxford Nanopore MinION DNA sequencer](minion.jpeg)
 
-## Pairwise alignment
+## Lesson plan {auto-animate=true}
 
-- Many problems in biology require comparisons on the _similarity_ of sequences
-- Homologous sequences may have _substitutions_ and _indels_ (insertions and deletions)
+1. Activity
+2. Global alignment with the Needleman-Wunsch algorithm
+
+![Oxford Nanopore MinION DNA sequencer](minion.jpeg)
+
+## The activity --- "Read sequencing"
+
+::: {.incremental}
+- Together: generate an original sequence _in silico_
+- One at a time: read out the sequence when I say
+  - Each recording lasts for __5 seconds only__
+  - Note to self: remember to have the monitor unmuted
+- Please also join in on the chat, touch-typing as fast as you can, no looking, and no backspace
+:::
+
+## Sequence alignment
+
+- Many problems in biology require comparisons of the _similarity_ of sequences
+  - Read mapping
+  - Genome assembly and annotation
+  - Phylogenetics
+  - Sequence classification
+  - etc...
+
+## Variants in related sequences
+
+- Homologous sequences may have
+  - insertions (_indels_): $A T C A \rightarrow A \underline{T} T C A$
+  - deletions (_indels_): $A \underline{T} C A \rightarrow A C A$
+  - _substitutions_: $A \underline{T} C A \rightarrow A \underline{A} C A$
 
 ![Mutations, sequencing error, etc.](DNA_polymerase_error.svg)
 
@@ -27,40 +56,38 @@ from nw import NeedlemanWunsch, Trace
 
 a = "ACT"
 b = "ACCT"
+a_aln = "AC–T"
+b_aln = "ACCT"
 
 needle = NeedlemanWunsch(a, b, gap_penalty=1)
 
 Markdown(
-    "Global alignment of two sequences\n\n"
+    "Goal is to align two sequences\n\n"
     f"$$\na = \\text{{{a}}}$$\n\n$$b = \\text{{{b}}}\n$$\n\n"
-    "with scoring scheme\n\n"
-    f"$$\nS_{{gap}} = {needle.gap_penalty}$$\n\n$$"
-    "S(a_i, b_j) = \\begin{cases}\n"
-    f"{needle.match} \; , & a_i = b_j \\\\\n"
-    f"{needle.mismatch} \; , & a_i \\ne b_j"
-    "\n\\end{cases}\n$$"
+    "with scoring scheme:\n"
+    f"$-{needle.gap_penalty}$ for an indel,\n"
+    f"$+{needle.match}$ for a match, and\n"
+    f"${needle.mismatch}$ for a mismatch.\n\n"
+    f"$$\na = \\text{{{a_aln}}}$$\n\n$$b = \\text{{{b_aln}}}\n$$\n\n"
 )
 ```
 
-Naive global search has time complexity
-$\; O(3^{(n - 1)(m - 1)})$,
-$\simeq `{python} 3 ** ((len(a) - 1) * (len(b) - 1))`$ operations
-to align just "`{python} a`" and "`{python} b`"...
-If they were 10 characters each it would be $\simeq 10^{40}$ operations!
+There are $3^{|a| |b|} = `{python} 3 ** ((len(a) - 1) * (len(b) - 1))`$
+possible alignments for the above sequences.
+If they were 10 characters long, there would be
+roughly $10^{40}$ possible alignments.
 
 ## Needleman-Wunsch algorithm
 
-Needleman and Wusch (1970) introduced a dynamic programming algorithm
+Needleman and Wunsch (1970) introduced a dynamic programming algorithm
 which computes optimal global alignments in $O ( m \times n )$ time.
 
 - ($\simeq `{python} len(a) * len(b)`$ operations to align
   "`{python} a`" and "`{python} b`")
 
-::: {.fragment .fade-in}
+. . .
 
 Let's see how it works...
-
-:::
 
 ## Needleman-Wunsch algorithm {.smaller}
 
@@ -70,47 +97,31 @@ affix = "\n:::"
 
 steps = [(
     "- Prepend a gap to each sequence\n"
-    "- Initialise a matrix $M$ with the characers of the sequences as row and column labels.\n\n"
+    "- Initialise a matrix with the characters of the sequences as row and column labels.\n\n"
     f"{needle}"
 )]
 needle.initialise_scores()
 steps.append(
     "Initialise scores in first row and first column "
-    "with the sequences\n$$\n\\begin{align*}\nM_{0j} &= -S_\\text{gap} \\times j, \\\\\n"
-    "M_{i0} &= -S_\\text{gap} \\times i\n\\end{align*}\n$$\n\n"
+    "by successive subtraction of the indel penalty "
+    "and draw an arrow from each value to its predecessor\n\n"
     f"{needle}"
 )
 for score in needle:
     diag_score = needle.score(needle.i - 1, needle.j -1) + (needle.match if needle.a[needle.i] == needle.b[needle.j] else needle.mismatch)
     steps.append(
-        "$$\n\\begin{alignat*}{4}\n"
-        "M_{i,j} &= \\max( & \\color{red}{M_{(i - 1),j}} - S_\\text{gap}, && \\quad \color{orange}{M_{i,(j - 1)}} - s_\\text{gap},"
-        " && \\quad \\color{blue}{M_{(i - 1),(j - 1)}} + S(a_i, b_j) && ) \\\\\n"
-        f"M_{{{needle.i},{needle.j}}} &= \\max(&"
-        f"(\\color{{red}}{{{needle.score(i = needle.i - 1)}}} - {needle.gap_penalty}), && \\quad "
-        f"(\\color{{orange}}{{{needle.score(j = needle.j - 1)}}} - {needle.gap_penalty}), && \\quad "
-        f'\\color{{blue}}{{{needle.score(needle.i - 1, needle.j - 1)}}} + S(``\\text{{{needle.a[needle.i]}"}}, ``\\text{{{needle.b[needle.j]}"}}) && )'
-        " \\\\\n&= \\max(&"
-        f"{r'\boxed{' if needle.trace() & Trace.UP else ''}"
-        f"{needle.score(i = needle.i - 1) - needle.gap_penalty} \\quad [\\uparrow]"
-        f"{r'}' if needle.trace() & Trace.UP else ''}"
-        ", && \\quad "
-        f"{r'\boxed{' if needle.trace() & Trace.LEFT else ''}"
-        f"{needle.score(j = needle.j - 1) - needle.gap_penalty} \\quad [\\leftarrow]"
-        f"{r'}' if needle.trace() & Trace.LEFT else ''}"
-        ", && \\quad "
-        f"{r'\boxed{' if needle.trace() & Trace.DIAG else ''}"
-        f"{diag_score} \\quad [\\nwarrow]"
-        f"{r'}' if needle.trace() & Trace.DIAG else ''}"
-        " && )\n"
-        "\\end{alignat*}\n$$\n\n"
-        f"{needle}"
+        "- To fill in a score, take the maximum of\n"
+        "  - $(\\leftarrow \\color{orange}{\\text{Score to the left}}) - 1$ (penalty for gap inserted to left sequence)\n"
+        "  - $(\\uparrow \\color{red}{\\text{Score above}}) - 1$ (penalty for gap inserted in top sequence)\n"
+        "  - $(\\nwarrow \\color{blue}{\\text{Score diagonally to the left and up}}) \pm 1$ (match or mismatch score)\n"
+        "- Draw an arrow from the new score to the score that this maximum came from"
+        f"\n{needle}"
     )
 
 a_aln, b_aln = needle.traceback()
-steps.append("- Starting in bottom-right corner, traceback along arrows\n"
+steps.append("Traceback:\n\n- Starting in bottom-right corner, trace back along arrows\n"
 f"- Insert gaps when there is a vertical or horizontal step.\n\n{needle}")
-steps.append(f"- `\n{a_aln}`\n- `{b_aln}`\n\n{needle}")
+steps.append(f"Alignment:\n\n- `\n{a_aln}`\n- `{b_aln}`\n\n{needle}")
 
 Markdown(
     ":::: {.r-stack}\n\n" + prefix + f"{affix}\n\n{prefix}".join(steps) + affix + "\n\n::::"
@@ -123,8 +134,9 @@ Markdown(
 from IPython.display import Markdown
 from nw import NeedlemanWunsch, Trace
 
-a = "Jessie"
-b = "Jesse W"
+with open("example.txt", "r") as f:
+    a = f.readline().strip()
+    b = f.readline().strip()
 
 needle = NeedlemanWunsch(a, b, gap_penalty=1)
 
@@ -139,9 +151,47 @@ Markdown(f"{needle}")
 ## Resulting alignment
 
 ```{python}
-Markdown(f"- `\n{a_aln}`\n- `{b_aln}`")
+Markdown(f"- `\n{a_aln}`\n- `{b_aln}`\n- Alignment score: {last_score.score}")
 ```
 
-## Multiple sequence alignment
+## Activity: The bioinformatic pipeline
 
-- Many problems require an alignment of 
+::: {.incremental}
+- Reads converted from .wav to text using whisper
+- Output of whisper is processed using commandline tools to produce `reads.fasta`
+- Reads are aligned using mafft into `msa.fasta`
+- Consensus sequence is called using `consensus.py`
+:::
+
+## Reads converted from .wav to .fasta {.smaller}
+
+```{python}
+with open("reads.fasta", "r") as f:
+    out = f"```\n{f.read()}```"
+
+Markdown(out)
+```
+
+## Reads are aligned using mafft {.smaller}
+
+```{python}
+with open("msa.fasta", "r") as f:
+    out = f"```\n{f.read()}```"
+
+Markdown(out)
+```
+
+## Consensus sequence from MSA {.smaller}
+
+```{python}
+with open("consensus.fasta", "r") as f:
+    f.readline()
+    consensus = f.readline()
+    f.readline()
+    nogaps = f.readline()
+
+Markdown(
+    f"Consensus sequence:\n\n`{consensus}`\n\n"
+    f"Without gaps:\n\n`{nogaps}`\n\n"
+)
+```

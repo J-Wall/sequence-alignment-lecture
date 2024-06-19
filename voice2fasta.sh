@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euxo pipefail
 
 rm -f reads.fasta
 
