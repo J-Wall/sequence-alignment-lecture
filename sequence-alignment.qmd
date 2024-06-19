@@ -6,9 +6,18 @@ format: revealjs
 
 ## Lesson plan
 
-- Global pairwise alignment with the Needleman-Wunsch algorithm
+- Pairwise alignment with the Needleman-Wunsch algorithm
 - Introduction to multiple sequence alignment
 - Activity: Consensus calling on "noisy" sequences
+
+![Oxford Nanopore MinION DNA sequencer](minion.jpeg)
+
+## Pairwise alignment
+
+- Many problems in biology require comparisons on the _similarity_ of sequences
+- Homologous sequences may have _substitutions_ and _indels_ (insertions and deletions)
+
+![Mutations, sequencing error, etc.](DNA_polymerase_error.svg)
 
 ## Global pairwise alignment {.smaller}
 
@@ -34,9 +43,26 @@ Markdown(
 ```
 
 Naive global search has time complexity
-$\quad O\left(3^{(n - 1)(m - 1)}\right)$
+$\; O(3^{(n - 1)(m - 1)})$,
+$\simeq `{python} 3 ** ((len(a) - 1) * (len(b) - 1))`$ operations
+to align just "`{python} a`" and "`{python} b`"...
+If they were 10 characters each it would be $\simeq 10^{40}$ operations!
 
-## {.smaller}
+## Needleman-Wunsch algorithm
+
+Needleman and Wusch (1970) introduced a dynamic programming algorithm
+which computes optimal global alignments in $O ( m \times n )$ time.
+
+- ($\simeq `{python} len(a) * len(b)`$ operations to align
+  "`{python} a`" and "`{python} b`")
+
+::: {.fragment .fade-in}
+
+Let's see how it works...
+
+:::
+
+## Needleman-Wunsch algorithm {.smaller}
 
 ```{python}
 prefix = "::: {.fragment .fade-in-then-out}\n"
@@ -117,3 +143,5 @@ Markdown(f"- `\n{a_aln}`\n- `{b_aln}`")
 ```
 
 ## Multiple sequence alignment
+
+- Many problems require an alignment of 
